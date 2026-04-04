@@ -16,6 +16,9 @@ const buildDefaultPreference = (userId: number) => ({
   user_id: userId,
   theme: "system",
   language: "en",
+  learning_language: "English",
+  native_language: "English",
+  learning_level: "beginner" as const,
   notifications_enabled: true
 });
 

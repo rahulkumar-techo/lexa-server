@@ -22,6 +22,19 @@ const preferenceDataSchema = {
       type: "string",
       nullable: true
     },
+    learning_language: {
+      type: "string",
+      nullable: true
+    },
+    native_language: {
+      type: "string",
+      nullable: true
+    },
+    learning_level: {
+      type: "string",
+      enum: ["beginner", "intermediate", "advanced"],
+      nullable: true
+    },
     notifications_enabled: {
       type: "boolean"
     },
@@ -57,6 +70,20 @@ export const updatePreferenceBodySchema = {
       type: "string",
       minLength: 2,
       maxLength: 10
+    },
+    learning_language: {
+      type: "string",
+      minLength: 2,
+      maxLength: 50
+    },
+    native_language: {
+      type: "string",
+      minLength: 2,
+      maxLength: 50
+    },
+    learning_level: {
+      type: "string",
+      enum: ["beginner", "intermediate", "advanced"]
     },
     notifications_enabled: {
       type: "boolean"

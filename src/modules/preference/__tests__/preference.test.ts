@@ -29,6 +29,7 @@ test("preference routes require auth and allow authenticated fetch/update", asyn
 
     assert.equal(getPreferenceResponse.statusCode, 200);
     assert.equal(getPreferenceResponse.json().data.theme, "system");
+    assert.equal(getPreferenceResponse.json().data.learning_language, "English");
     assert.equal(getPreferenceResponse.json().data.notifications_enabled, true);
 
     const updatePreferenceResponse = await app.inject({
@@ -40,12 +41,16 @@ test("preference routes require auth and allow authenticated fetch/update", asyn
       payload: {
         theme: "dark",
         language: "en",
+        learning_language: "Spanish",
+        native_language: "English",
+        learning_level: "intermediate",
         notifications_enabled: false
       }
     });
 
     assert.equal(updatePreferenceResponse.statusCode, 200);
     assert.equal(updatePreferenceResponse.json().data.theme, "dark");
+    assert.equal(updatePreferenceResponse.json().data.learning_level, "intermediate");
     assert.equal(updatePreferenceResponse.json().data.notifications_enabled, false);
   } finally {
     await app.close();

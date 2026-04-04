@@ -53,6 +53,9 @@ model Preference {
   user_id               Int     @unique
   theme                 String? @default("system")
   language              String? @default("en")
+  learning_language     String? @default("English")
+  native_language       String? @default("English")
+  learning_level        String? @default("beginner")
   notifications_enabled Boolean @default(true)
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
