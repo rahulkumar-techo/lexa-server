@@ -180,6 +180,59 @@ async function docsPlugin(app: FastifyInstance) {
         };
       }
 
+      if (method === "GET" && url === "/api/v1/preferences/me") {
+        nextSchema.response = {
+          ...nextSchema.response,
+          200: {
+            ...nextSchema.response?.[200],
+            example: {
+              success: true,
+              message: "Preference fetched successfully",
+              data: {
+                id: 1,
+                user_id: 1,
+                theme: "system",
+                language: "en",
+                notifications_enabled: true,
+                created_at: "2026-04-04T04:40:00.000Z",
+                updated_at: "2026-04-04T04:40:00.000Z"
+              }
+            }
+          }
+        };
+      }
+
+      if (method === "PUT" && url === "/api/v1/preferences/me") {
+        nextSchema.body = {
+          ...nextSchema.body,
+          example: {
+            theme: "dark",
+            language: "en",
+            notifications_enabled: false
+          }
+        };
+
+        nextSchema.response = {
+          ...nextSchema.response,
+          200: {
+            ...nextSchema.response?.[200],
+            example: {
+              success: true,
+              message: "Preference updated successfully",
+              data: {
+                id: 1,
+                user_id: 1,
+                theme: "dark",
+                language: "en",
+                notifications_enabled: false,
+                created_at: "2026-04-04T04:40:00.000Z",
+                updated_at: "2026-04-04T04:41:00.000Z"
+              }
+            }
+          }
+        };
+      }
+
       return { schema: nextSchema, url };
     },
     openapi: {
@@ -204,6 +257,10 @@ async function docsPlugin(app: FastifyInstance) {
         {
           name: "Auth",
           description: "Authentication and account creation endpoints"
+        },
+        {
+          name: "Preference",
+          description: "Authenticated user preference endpoints"
         }
       ],
       components: {

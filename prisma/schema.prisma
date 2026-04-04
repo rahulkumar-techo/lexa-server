@@ -26,10 +26,26 @@ model User {
 
   email_verified_at DateTime?
   sessions Session[]
+  preference Preference?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   @@unique([provider, provider_id]) // prevent duplicate accounts
+}
+
+model Preference {
+  @@map("preferences")
+  id Int @id @default(autoincrement())
+  user_id Int @unique
+  theme String? @default("system")
+  language String? @default("en")
+  notifications_enabled Boolean @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
 }
 
 model Session {
