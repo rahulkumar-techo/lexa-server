@@ -7,8 +7,11 @@ datasource db {
   provider = "postgresql"
 }
 
+// User → Chat → Message → Context → AI
+// ===============================
+// USER MODEL (Core identity)
+// ===============================
 model User {
-  @@map("users")
   id            Int     @id @default(autoincrement())
   email         String  @unique
   name          String?
@@ -16,56 +19,214 @@ model User {
   avatar_url    String?
   bio           String?
 
-    // 🔥 social auth fields
-  provider          String?   // "google", "github"
-  provider_id       String?   // id from provider
+  // 🔐 Social authentication support
+  provider    String? // e.g. "google", "github"
+  provider_id String? // provider user id
 
-  status UserStatus @default(INACTIVE)
-  role String @default("user")
-  is_verified Boolean @default(false)
+  status      UserStatus @default(INACTIVE)
+  role        String     @default("user")
+  is_verified Boolean    @default(false)
 
   email_verified_at DateTime?
-  sessions Session[]
+
+  // 🔗 Relations
+  sessions   Session[]
   preference Preference?
+  chats      Chats[]
+  messages   Message[]
+  files      File[]
+  analytics  AnalyticsEvent[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  @@unique([provider, provider_id]) // prevent duplicate accounts
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  subscriptions Subscription[]
+
+  @@unique([provider, provider_id])
+  @@map("users")
 }
 
+// ===============================
+// USER PREFERENCES (1-1)
+// ===============================
 model Preference {
-  @@map("preferences")
-  id Int @id @default(autoincrement())
-  user_id Int @unique
-  theme String? @default("system")
-  language String? @default("en")
+  id                    Int     @id @default(autoincrement())
+  user_id               Int     @unique
+  theme                 String? @default("system")
+  language              String? @default("en")
   notifications_enabled Boolean @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
   @@index([user_id])
+  @@map("preferences")
 }
 
+// ===============================
+// USER SESSION (JWT REFRESH)
+// ===============================
 model Session {
-  @@map("sessions")
-  id String @id @default(uuid()) @db.Uuid
-  user_id Int
-  refresh_token String @unique
-  expires_at DateTime
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id            String   @id @default(uuid()) @db.Uuid
+  user_id       Int
+  refresh_token String   @unique
+  expires_at    DateTime
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
   @@index([user_id])
+  @@map("sessions")
 }
 
+// ===============================
+// CHAT (Conversation container)
+// ===============================
+model Chats {
+  id      String     @id @default(uuid()) @db.Uuid
+  user_id Int
+  title   String
+  status  UserStatus @default(INACTIVE)
+
+  // 🔗 Relations
+  user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages Message[]
+  context  Context?
+
+  creeted_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([user_id])
+  @@map("chats")
+}
+
+// ===============================
+// MESSAGE (Chat messages)
+// ===============================
+model Message {
+  id      String @id @default(uuid()) @db.Uuid
+  chat_id String
+  user_id Int?
+
+  // 👇 role defines AI or user message
+  role    MessageRole
+  content String
+
+  // optional metadata (tokens, latency etc.)
+  metadata Json?
+
+  chat Chats @relation(fields: [chat_id], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [user_id], references: [id])
+
+  created_at DateTime @default(now())
+
+  @@index([chat_id])
+  @@map("messages")
+}
+
+// ===============================
+// CONTEXT (AI MEMORY BUILDER)
+// ===============================
+model Context {
+  id      String @id @default(uuid()) @db.Uuid
+  chat_id String @unique
+
+  // 🧠 Stored structured AI context
+  data Json
+
+  chat Chats @relation(fields: [chat_id], references: [id], onDelete: Cascade)
+
+  updated_at DateTime @updatedAt
+
+  @@map("contexts")
+}
+
+// ===============================
+// SCENARIO (Predefined AI flows)
+// ===============================
+model Scenario {
+  id          String  @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+
+  // scenario rules / prompts
+  config Json
+
+  created_at DateTime @default(now())
+
+  @@map("scenarios")
+}
+
+// ===============================
+// FILE STORAGE (Cloudinary etc.)
+// ===============================
+model File {
+  id      String @id @default(uuid()) @db.Uuid
+  user_id Int
+
+  url  String
+  type String // image, pdf, audio
+  size Int?
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@map("files")
+}
+
+// ===============================
+// ANALYTICS EVENTS
+// ===============================
+model AnalyticsEvent {
+  id      String @id @default(uuid()) @db.Uuid
+  user_id Int
+
+  event    String // e.g. "chat_created", "ai_used"
+  metadata Json?
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@map("analytics_events")
+}
+
+// ===============================
+// PAYMENT (Subscription)
+// ===============================
+model Subscription {
+  id      String @id @default(uuid()) @db.Uuid
+  user_id Int
+
+  provider String // stripe
+  status   String // active, canceled
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+
+  @@map("subscriptions")
+}
+
+// ===============================
+// ENUMS
+// ===============================
 enum UserStatus {
   ACTIVE
   INACTIVE
   BANNED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
 }
 
 enum Role {
