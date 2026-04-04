@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  @@map("users")
+  id            Int     @id @default(autoincrement())
+  email         String  @unique
+  name          String?
+  password_hash String?
+  avatar_url    String?
+  bio           String?
+
+    // 🔥 social auth fields
+  provider          String?   // "google", "github"
+  provider_id       String?   // id from provider
+
+  status UserStatus @default(INACTIVE)
+  role String @default("user")
+  is_verified Boolean @default(false)
+
+  email_verified_at DateTime?
+  sessions Session[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@unique([provider, provider_id]) // prevent duplicate accounts
+}
+
+model Session {
+  @@map("sessions")
+  id String @id @default(uuid()) @db.Uuid
+  user_id Int
+  refresh_token String @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
