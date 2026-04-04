@@ -193,6 +193,9 @@ async function docsPlugin(app: FastifyInstance) {
                 user_id: 1,
                 theme: "system",
                 language: "en",
+                learning_language: "English",
+                native_language: "Hindi",
+                learning_level: "beginner",
                 notifications_enabled: true,
                 created_at: "2026-04-04T04:40:00.000Z",
                 updated_at: "2026-04-04T04:40:00.000Z"
@@ -208,6 +211,9 @@ async function docsPlugin(app: FastifyInstance) {
           example: {
             theme: "dark",
             language: "en",
+            learning_language: "Spanish",
+            native_language: "English",
+            learning_level: "intermediate",
             notifications_enabled: false
           }
         };
@@ -224,6 +230,9 @@ async function docsPlugin(app: FastifyInstance) {
                 user_id: 1,
                 theme: "dark",
                 language: "en",
+                learning_language: "Spanish",
+                native_language: "English",
+                learning_level: "intermediate",
                 notifications_enabled: false,
                 created_at: "2026-04-04T04:40:00.000Z",
                 updated_at: "2026-04-04T04:41:00.000Z"
@@ -261,6 +270,10 @@ async function docsPlugin(app: FastifyInstance) {
         {
           name: "Preference",
           description: "Authenticated user preference endpoints"
+        },
+        {
+          name: "Scenario",
+          description: "Scenario listing, detail, and admin creation endpoints"
         }
       ],
       components: {

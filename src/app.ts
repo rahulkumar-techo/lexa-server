@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import { registerPlugins } from "./plugins";
 import authRoute from "./modules/auth/auth.route";
 import preferenceRoute from "./modules/preference/preference.route";
+import scenarioRoute from "./modules/scenario/scenario.route";
 import { docsPlugin } from "./lib/docs";
 
 export async function buildApp() {
@@ -48,6 +49,7 @@ export async function buildApp() {
 
   await app.register(authRoute, { prefix: "/api/v1/auth" });
   await app.register(preferenceRoute, { prefix: "/api/v1/preferences" });
+  await app.register(scenarioRoute, { prefix: "/api/v1/scenarios" });
 
   return app;
 }

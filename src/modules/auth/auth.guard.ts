@@ -11,6 +11,20 @@ import {
 import { User, UserStatus } from "@/generated/prisma/client";
 import { FastifyReply, FastifyRequest } from "fastify";
 
+const getBearerToken = (authorizationHeader?: string) => {
+  if (!authorizationHeader) {
+    return null;
+  }
+
+  const [scheme, token] = authorizationHeader.split(" ");
+
+  if (scheme !== "Bearer" || !token) {
+    return null;
+  }
+
+  return token;
+};
+
 const getAuthorizedUser = async (userId: number): Promise<User | null> => {
   const user = await authRepo.getUser({ id: userId });
 
@@ -50,7 +64,8 @@ const rotateSessionTokens = async (
 };
 
 export const authenticate = async (req: FastifyRequest, reply: FastifyReply) => {
-  const accessToken = req.cookies?.[ACCESS_TOKEN_COOKIE];
+  const accessToken =
+    getBearerToken(req.headers.authorization) ?? req.cookies?.[ACCESS_TOKEN_COOKIE];
 
   if (accessToken) {
     try {
