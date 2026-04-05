@@ -39,7 +39,7 @@ async function docsPlugin(app: FastifyInstance) {
             ...nextSchema.response?.[201],
             example: {
               success: true,
-              message: "User registered successfully. Verify the account to continue.",
+              message: "User registered successfully. Verification email sent.",
               data: {
                 user: {
                   id: 1,
@@ -52,7 +52,8 @@ async function docsPlugin(app: FastifyInstance) {
                   email_verified_at: null
                 },
                 verificationToken: "jwt-token",
-                verificationLink: "http://localhost:5000/api/v1/auth/verify?token=jwt-token"
+                verificationLink: "http://localhost:5000/api/v1/auth/verify?token=jwt-token",
+                mailProvider: "brevo"
               }
             }
           },
@@ -73,6 +74,42 @@ async function docsPlugin(app: FastifyInstance) {
       }
 
       if (method === "GET" && url === "/api/v1/auth/verify") {
+        nextSchema.response = {
+          ...nextSchema.response,
+          200: {
+            ...nextSchema.response?.[200],
+            example: {
+              success: true,
+              message: "Account verified successfully",
+              data: {
+                user: {
+                  id: 1,
+                  name: "Rahul Sharma",
+                  email: "rahul@example.com",
+                  role: "user",
+                  status: "ACTIVE",
+                  isVerified: true,
+                  created_at: "2026-04-04T00:30:06.000Z",
+                  email_verified_at: "2026-04-04T00:35:06.000Z"
+                },
+                accessToken: "jwt-access-token",
+                refreshToken: "jwt-refresh-token",
+                tokenType: "Bearer"
+              }
+            }
+          }
+        };
+      }
+
+      if (method === "POST" && url === "/api/v1/auth/verify-otp") {
+        nextSchema.body = {
+          ...nextSchema.body,
+          example: {
+            token: "jwt-token",
+            otp: "123456"
+          }
+        };
+
         nextSchema.response = {
           ...nextSchema.response,
           200: {
@@ -131,6 +168,47 @@ async function docsPlugin(app: FastifyInstance) {
                 refreshToken: "jwt-refresh-token",
                 tokenType: "Bearer"
               }
+            }
+          }
+        };
+      }
+
+      if (method === "POST" && url === "/api/v1/auth/forgot-password") {
+        nextSchema.body = {
+          ...nextSchema.body,
+          example: {
+            email: "rahul@example.com"
+          }
+        };
+
+        nextSchema.response = {
+          ...nextSchema.response,
+          200: {
+            ...nextSchema.response?.[200],
+            example: {
+              success: true,
+              message: "If the account exists, a password reset email has been sent."
+            }
+          }
+        };
+      }
+
+      if (method === "POST" && url === "/api/v1/auth/reset-password") {
+        nextSchema.body = {
+          ...nextSchema.body,
+          example: {
+            token: "jwt-reset-token",
+            password: "newSecret123"
+          }
+        };
+
+        nextSchema.response = {
+          ...nextSchema.response,
+          200: {
+            ...nextSchema.response?.[200],
+            example: {
+              success: true,
+              message: "Password reset successful"
             }
           }
         };
@@ -268,12 +346,36 @@ async function docsPlugin(app: FastifyInstance) {
           description: "Authentication and account creation endpoints"
         },
         {
+          name: "User",
+          description: "User profile read and update endpoints"
+        },
+        {
           name: "Preference",
           description: "Authenticated user preference endpoints"
         },
         {
           name: "Scenario",
           description: "Scenario listing, detail, and admin creation endpoints"
+        },
+        {
+          name: "Chat",
+          description: "Chat session and message endpoints"
+        },
+        {
+          name: "AI",
+          description: "AI generation endpoints"
+        },
+        {
+          name: "Analytics",
+          description: "Analytics tracking and reporting endpoints"
+        },
+        {
+          name: "Payment",
+          description: "Subscription and payment webhook endpoints"
+        },
+        {
+          name: "File",
+          description: "File upload metadata endpoints"
         }
       ],
       components: {

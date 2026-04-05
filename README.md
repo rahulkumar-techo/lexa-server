@@ -1,89 +1,63 @@
-```sql
-src/
-│
-├── server.ts                 # entry point (start server)
-├── app.ts                    # build fastify app
-│
-├── config/                   # environment + configs
-│   ├── env.ts
-│   └── index.ts
-│
-├── plugins/                  # fastify plugins (infra layer)
-│   ├── index.ts
-│   ├── logger.plugin.ts
-│   ├── rateLimit.plugin.ts
-│   ├── cors.plugin.ts
-│   ├── helmet.plugin.ts
-│   └── redis.plugin.ts       # (future queue support)
-│
-├── modules/                  # 🔥 feature-based modules
-│   ├── auth/
-│   │   ├── auth.route.ts
-│   │   ├── auth.controller.ts
-│   │   ├── auth.service.ts
-│   │   ├── auth.repository.ts
-│   │   ├── auth.schema.ts
-│   │   └── auth.types.ts
-│   │
-│   ├── users/
-│   │   ├── user.route.ts
-│   │   ├── user.controller.ts
-│   │   ├── user.service.ts
-│   │   ├── user.repository.ts
-│   │   ├── user.schema.ts
-│   │   └── user.types.ts
-│   │
-│   ├── jobs/
-│   │   ├── job.route.ts
-│   │   ├── job.controller.ts
-│   │   ├── job.service.ts
-│   │   ├── job.repository.ts
-│   │   ├── job.schema.ts
-│   │   └── job.types.ts
-│   │
-│   └── ai/
-│       ├── ai.route.ts
-│       ├── ai.controller.ts
-│       ├── ai.service.ts
-│       ├── ai.repository.ts
-│       ├── ai.schema.ts
-│       └── ai.types.ts
-│
-├── shared/                   # 🔥 reusable/common layer
-│   ├── constants/
-│   │   └── http.ts
-│   │
-│   ├── errors/
-│   │   └── app-error.ts
-│   │
-│   ├── utils/
-│   │   ├── response.ts
-│   │   ├── logger.ts
-│   │   └── hash.ts
-│   │
-│   ├── types/
-│   │   └── common.ts
-│   │
-│   ├── validators/
-│   │   └── common.schema.ts
-│   │
-│   └── database/
-│       └── user-store.ts     # in-memory user storage
-│
-├── infrastructure/           # external systems (VERY IMPORTANT)
-│   ├── redis/
-│   │   └── redis.client.ts
-│   │
-│   ├── queue/
-│   │   ├── queue.ts
-│   │   └── worker.ts
-│   │
-│   ├── ai/
-│   │   └── ai-client.ts      # OpenAI / LLM client
-│   │
-│   └── storage/
-│       └── storage.ts        # cloudinary/firebase
-│
-└── routes/                   # route registration
-    └── index.ts
-    ```
+# Lexa Server
+
+Fastify + Prisma backend for Lexa.
+
+## Setup
+
+Add these mail variables to `.env`:
+
+```env
+BREVO_LOGIN="your-brevo-sender@example.com"
+BREVO_API_KEY="your-brevo-api-key"
+```
+
+Optional:
+
+```env
+APP_NAME="Lexa"
+PORT=5000
+NODE_ENV="development"
+```
+
+`BREVO_LOGIN` is used as the sender email for auth mails.
+
+## Auth Mail Flow
+
+The auth module now sends email for:
+
+- registration verification
+- OTP verification support
+- forgot password
+- reset password confirmation
+
+Endpoints:
+
+- `POST /api/v1/auth/register`
+- `GET /api/v1/auth/verify`
+- `POST /api/v1/auth/verify-otp`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/forgot-password`
+- `POST /api/v1/auth/reset-password`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+
+Notes:
+
+- In `test` mode, email uses an in-memory console provider instead of Brevo.
+- `register` still returns `verificationToken` and `verificationLink` to keep local development and automated tests simple.
+- Password reset tokens expire after 15 minutes.
+- Reset tokens become invalid after a password change because the current password hash is part of the signed token payload.
+
+## Run
+
+```bash
+pnpm install
+pnpm prisma:generate
+pnpm dev
+```
+
+## Test
+
+```bash
+pnpm test
+```

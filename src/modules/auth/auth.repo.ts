@@ -151,6 +151,14 @@ class AuthRepo {
       }
     });
   }
+
+  async deleteSessionsByUserId(userId: number): Promise<void> {
+    await prisma.session.deleteMany({
+      where: {
+        user_id: userId
+      }
+    });
+  }
 }
 
 export { AuthRepo };

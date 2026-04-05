@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cleanupUserByEmail, registerAndVerifyUser } from "@/src/test/helpers";
+import { buildApp } from "@/src/app";
+import {
+  cleanupUserByEmail,
+  createTestEmail,
+  extractFirstUrl,
+  getLatestSentEmail,
+  registerAndVerifyUser
+} from "@/src/test/helpers";
 import { prisma } from "@/src/lib/prisma";
+import { testMailProvider } from "@/src/modules/mails/mail.service";
 
 test("auth flow registers, verifies, logs in, refreshes, and logs out", async () => {
   const { app, email, password, registerResponse, verifyResponse } =
@@ -11,7 +19,12 @@ test("auth flow registers, verifies, logs in, refreshes, and logs out", async ()
 
   try {
     assert.equal(registerResponse.statusCode, 201);
+    assert.equal(registerResponse.json().data.mailProvider, "console");
     assert.equal(verifyResponse.statusCode, 200);
+
+    const verificationEmail = getLatestSentEmail(email);
+    assert.match(verificationEmail.email.subject, /Verify your email address/i);
+    assert.match(verificationEmail.email.text, /\b\d{6}\b/);
 
     const verifyBody = verifyResponse.json();
     assert.equal(verifyBody.success, true);
@@ -63,6 +76,93 @@ test("auth flow registers, verifies, logs in, refreshes, and logs out", async ()
     assert.equal(logoutResponse.statusCode, 200);
     assert.equal(logoutResponse.json().message, "Logout successful");
     assert.equal(logoutResponse.cookies.every((cookie) => cookie.value === ""), true);
+  } finally {
+    await app.close();
+    await cleanupUserByEmail(email);
+  }
+});
+
+test("verify-otp accepts the mailed OTP and signs the user in", async () => {
+  const { app, email, verifyResponse } = await registerAndVerifyUser({
+    name: "OTP Tester",
+    useOtp: true
+  });
+
+  try {
+    assert.equal(verifyResponse.statusCode, 200);
+    assert.equal(verifyResponse.json().data.user.email, email);
+    assert.equal(verifyResponse.json().data.user.isVerified, true);
+  } finally {
+    await app.close();
+    await cleanupUserByEmail(email);
+  }
+});
+
+test("forgot-password sends reset email and reset-password updates the password", async () => {
+  const { app, email, password } = await registerAndVerifyUser({
+    name: "Reset Tester"
+  });
+  const nextPassword = "newSecret123";
+
+  try {
+    testMailProvider.clear();
+
+    const forgotResponse = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: {
+        email
+      }
+    });
+
+    assert.equal(forgotResponse.statusCode, 200);
+    assert.equal(
+      forgotResponse.json().message,
+      "If the account exists, a password reset email has been sent."
+    );
+
+    const forgotEmail = getLatestSentEmail(email);
+    assert.match(forgotEmail.email.subject, /Reset your Lexa password/i);
+    const resetToken = new URL(extractFirstUrl(forgotEmail.email.text)).searchParams.get("token");
+
+    assert.ok(resetToken);
+
+    const resetResponse = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/reset-password",
+      payload: {
+        token: resetToken,
+        password: nextPassword
+      }
+    });
+
+    assert.equal(resetResponse.statusCode, 200);
+    assert.equal(resetResponse.json().message, "Password reset successful");
+
+    const confirmationEmail = getLatestSentEmail(email);
+    assert.match(confirmationEmail.email.subject, /password has been changed/i);
+
+    const oldPasswordLogin = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: {
+        email,
+        password
+      }
+    });
+
+    assert.equal(oldPasswordLogin.statusCode, 401);
+
+    const newPasswordLogin = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: {
+        email,
+        password: nextPassword
+      }
+    });
+
+    assert.equal(newPasswordLogin.statusCode, 200);
   } finally {
     await app.close();
     await cleanupUserByEmail(email);
@@ -147,5 +247,28 @@ test('authorize(["admin"]) forbids normal users and allows admins', async () => 
   } finally {
     await app.close();
     await cleanupUserByEmail(email);
+  }
+});
+
+test("forgot-password stays generic for unknown emails", async () => {
+  const server = await buildApp();
+  const email = createTestEmail("missing");
+
+  try {
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/v1/auth/forgot-password",
+      payload: {
+        email
+      }
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(
+      response.json().message,
+      "If the account exists, a password reset email has been sent."
+    );
+  } finally {
+    await server.close();
   }
 });

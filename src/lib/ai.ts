@@ -9,6 +9,8 @@ const groq = new Groq({
 
 const DEFAULT_MODEL = env.GROQ_MODEL ?? "openai/gpt-oss-20b";
 const DEFAULT_SCENARIO = "General conversation practice";
+const IS_TEST_RUNTIME =
+  env.NODE_ENV === "test" || process.argv.includes("--test");
 const DEFAULT_PROFILE = {
   learningLanguage: "English",
   nativeLanguage: "English",
@@ -210,6 +212,25 @@ function buildMessages(
   ];
 }
 
+function buildMockReply(input: GenerateAIResponseInput, profile: TutorProfile) {
+  return [
+    "Your Sentence:",
+    input.message,
+    "",
+    "Corrected Sentence:",
+    input.message,
+    "",
+    "Translation:",
+    `Translated to ${profile.nativeLanguage}`,
+    "",
+    "Explanation:",
+    `Simple ${profile.level} explanation in ${profile.nativeLanguage}`,
+    "",
+    "Continue:",
+    `Can you say another sentence in ${profile.learningLanguage}?`
+  ].join("\n");
+}
+
 export async function generateAIResponse(
   input: GenerateAIResponseInput
 ): Promise<GenerateAIResponseResult> {
@@ -217,6 +238,17 @@ export async function generateAIResponse(
     const profile = await getTutorProfile(input);
     const systemPrompt = buildSystemPrompt(profile, input.scenario);
     const messages = buildMessages(systemPrompt, input);
+
+    if (IS_TEST_RUNTIME) {
+      return {
+        reply: buildMockReply(input, profile),
+        usage: {
+          prompt_tokens: messages.length * 10,
+          completion_tokens: 60,
+          total_tokens: messages.length * 10 + 60
+        }
+      };
+    }
 
     const response = await groq.chat.completions.create({
       model: DEFAULT_MODEL,
