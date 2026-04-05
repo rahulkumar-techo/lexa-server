@@ -9,19 +9,8 @@ import {
   verifyOtpRouteSchema,
   verifyRouteSchema
 } from "@/src/docs/auth";
-import {
-  adminOnlyHandler,
-  forgotPasswordHandler,
-  getCurrentUserHandler,
-  loginByEmail,
-  logoutHandler,
-  refreshHandler,
-  registerByEmail,
-  resetPasswordHandler,
-  verifyUserByOtp,
-  verifyUserByToken
-} from "./auth.service";
 import { authenticate, authorize } from "./auth.guard";
+import { authService } from "./auth.service";
 
 const authRoute = async (app: FastifyInstance) => {
   app.post(
@@ -29,7 +18,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       schema: registerRouteSchema
     },
-    registerByEmail
+    authService.registerByEmail
   );
 
   app.get(
@@ -37,7 +26,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       schema: verifyRouteSchema
     },
-    verifyUserByToken
+    authService.verifyUserByToken
   );
 
   app.post(
@@ -45,7 +34,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       schema: verifyOtpRouteSchema
     },
-    verifyUserByOtp
+    authService.verifyUserByOtp
   );
 
   app.post(
@@ -53,7 +42,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       schema: loginRouteSchema
     },
-    loginByEmail
+    authService.loginByEmail
   );
 
   app.post(
@@ -61,7 +50,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       schema: forgotPasswordRouteSchema
     },
-    forgotPasswordHandler
+    authService.forgotPasswordHandler
   );
 
   app.post(
@@ -69,7 +58,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       schema: resetPasswordRouteSchema
     },
-    resetPasswordHandler
+    authService.resetPasswordHandler
   );
 
   app.post(
@@ -77,7 +66,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       schema: refreshRouteSchema
     },
-    refreshHandler
+    authService.refreshHandler
   );
 
   app.post(
@@ -86,7 +75,7 @@ const authRoute = async (app: FastifyInstance) => {
       schema: logoutRouteSchema,
       preHandler: [authenticate]
     },
-    logoutHandler
+    authService.logoutHandler
   );
 
   app.get(
@@ -94,7 +83,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       preHandler: [authenticate]
     },
-    getCurrentUserHandler
+    authService.getCurrentUserHandler
   );
 
   app.get(
@@ -102,7 +91,7 @@ const authRoute = async (app: FastifyInstance) => {
     {
       preHandler: [authenticate, authorize(["admin"])]
     },
-    adminOnlyHandler
+    authService.adminOnlyHandler
   );
 };
 

@@ -12,6 +12,7 @@ import analyticsRoute from "./modules/analytics/analytics.route";
 import paymentRoute from "./modules/payment/payment.route";
 import fileRoute from "./modules/file/file.route";
 import { docsPlugin } from "./lib/docs";
+import { registerQueueMonitoring } from "./infrastructure/queue";
 
 export async function buildApp() {
   const app = Fastify({
@@ -29,6 +30,7 @@ export async function buildApp() {
 
   await registerPlugins(app);
   await docsPlugin(app);
+  await registerQueueMonitoring(app);
 
   app.get(
     "/",
