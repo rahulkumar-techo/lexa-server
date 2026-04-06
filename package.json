@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "prisma:generate": "prisma generate",
     "dev": "tsx watch src/server.ts",
