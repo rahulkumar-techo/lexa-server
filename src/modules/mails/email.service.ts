@@ -82,6 +82,7 @@ const formatAddress = (value: EmailAddress) =>
 
 const formatDate = (value?: Date) => (value ? value.toISOString() : undefined);
 
+// emal class serice
 export class EmailService {
   private readonly sentEmails: SentEmailRecord[] = [];
 
@@ -235,4 +236,61 @@ export class EmailService {
       text
     });
   }
+
+  // Description: Sends a welcome email after successful user registration
+
+async sendWelcomeEmail(payload: {
+  to: EmailAddress | EmailAddress[];
+  user: { firstName: string };
+}) {
+  const name = firstName(payload.user.firstName);
+
+  const subject = `Welcome to ${this.options.appName} 🎉`;
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827;">
+      <h1 style="margin:0 0 16px;">Welcome, ${escapeHtml(name)} 🎉</h1>
+
+      <p>Hi ${escapeHtml(name)},</p>
+
+      <p>We're excited to have you onboard at <strong>${escapeHtml(
+        this.options.appName
+      )}</strong>.</p>
+
+      <p>You can now explore all features and get started right away.</p>
+
+      <div style="margin:24px 0;">
+        <a 
+          href="${this.options.appUrl}" 
+          style="background:#2563eb;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:600;"
+        >
+          Get Started
+        </a>
+      </div>
+
+      <p>If you have any questions, feel free to reply to this email.</p>
+
+      <p style="margin-top:32px;">Cheers,<br/>The ${
+        this.options.appName
+      } Team</p>
+    </div>
+  `;
+
+  const text = [
+    `Hi ${name},`,
+    `Welcome to ${this.options.appName}!`,
+    `We're excited to have you onboard.`,
+    `Get started here: ${this.options.appUrl}`,
+    `If you have any questions, feel free to reach out.`,
+    `- ${this.options.appName} Team`
+  ].join("\n");
+
+  return this.sendEmail({
+    to: normalizeRecipients(payload.to),
+    from: this.options.from,
+    subject,
+    html,
+    text
+  });
+}
 }

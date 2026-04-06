@@ -45,6 +45,53 @@ const logAuthWarning = (message: string, context: Record<string, unknown>) => {
 };
 
 class AuthService {
+  private sendVerificationEmail = async (
+    user: Pick<User, "id" | "email" | "role"> & { name: string | null },
+    verificationUrl: string,
+    otp: string
+  ) =>
+    mailService.sendVerification({
+      to: { email: user.email, name: user.name ?? user.email },
+      user: {
+        firstName: user.name ?? user.email,
+        email: user.email
+      },
+      verificationUrl,
+      otp
+    });
+
+  private sendForgotPasswordEmail = async (
+    user: Pick<User, "id" | "email" | "role"> & { name: string | null },
+    resetUrl: string,
+    req: FastifyRequest
+  ) =>
+    mailService.sendForgotPassword({
+      to: { email: user.email, name: user.name ?? user.email },
+      user: {
+        firstName: user.name ?? user.email,
+        email: user.email
+      },
+      resetUrl,
+      requestedAt: new Date(),
+      ipAddress: req.ip,
+      userAgent: getSingleHeaderValue(req.headers["user-agent"])
+    });
+
+  private sendResetPasswordConfirmationEmail = async (
+    user: Pick<User, "id" | "email" | "role"> & { name: string | null },
+    req: FastifyRequest
+  ) =>
+    mailService.sendResetPasswordConfirm({
+      to: { email: user.email, name: user.name ?? user.email },
+      user: {
+        firstName: user.name ?? user.email,
+        email: user.email
+      },
+      changedAt: new Date(),
+      ipAddress: req.ip,
+      deviceInfo: getSingleHeaderValue(req.headers["user-agent"])
+    });
+
   private issueAuthSession = async (
     req: FastifyRequest,
     reply: FastifyReply,
@@ -161,16 +208,7 @@ class AuthService {
     const { token, otp } = generateVerificationToken(req.server, email);
     const verificationLink = `${getRequestOrigin(req)}/api/v1/auth/verify?token=${encodeURIComponent(token)}`;
 
-    await enqueueAuthEmailJob({
-      type: "verification",
-      email,
-      name,
-      userId: newUser.id,
-      isVip: newUser.role === "admin",
-      verificationUrl: verificationLink,
-      otp,
-      requestId: req.id
-    });
+    await this.sendVerificationEmail(newUser, verificationLink, otp);
 
     return responseHandler.created(
       reply,
@@ -178,7 +216,7 @@ class AuthService {
         user: toPublicUser(newUser),
         verificationToken: token,
         verificationLink,
-        mailProvider: queueConfig.isQueueExecutionEnabled ? "queue" : mailService.getProviderName()
+        mailProvider: mailService.getProviderName()
       },
       "User registered successfully. Verification email sent."
     );
@@ -258,18 +296,7 @@ class AuthService {
       const { token } = generatePasswordResetToken(req.server, user.email, user.password_hash);
       const resetUrl = `${getRequestOrigin(req)}/api/v1/auth/reset-password?token=${encodeURIComponent(token)}`;
 
-      await enqueueAuthEmailJob({
-        type: "forgot-password",
-        email: user.email,
-        name: user.name ?? user.email,
-        userId: user.id,
-        isVip: user.role === "admin",
-        resetUrl,
-        requestedAt: new Date().toISOString(),
-        ipAddress: req.ip,
-        userAgent: getSingleHeaderValue(req.headers["user-agent"]),
-        requestId: req.id
-      });
+      await this.sendForgotPasswordEmail(user, resetUrl, req);
     }
 
     return responseHandler.success(
@@ -314,17 +341,7 @@ class AuthService {
     });
     await authRepo.deleteSessionsByUserId(user.id);
 
-    await enqueueAuthEmailJob({
-      type: "reset-password-confirm",
-      email: user.email,
-      name: user.name ?? user.email,
-      userId: user.id,
-      isVip: user.role === "admin",
-      changedAt: new Date().toISOString(),
-      ipAddress: req.ip,
-      deviceInfo: getSingleHeaderValue(req.headers["user-agent"]),
-      requestId: req.id
-    });
+    await this.sendResetPasswordConfirmationEmail(user, req);
 
     clearAuthCookies(reply);
 

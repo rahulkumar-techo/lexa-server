@@ -13,7 +13,7 @@ const createOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 export const generateVerificationToken = (
   app: FastifyInstance,
-  email: string
+  email: string 
 ): { token: string; otp: string } => {
   const otp = createOtp();
   const token = app.jwt.sign(
