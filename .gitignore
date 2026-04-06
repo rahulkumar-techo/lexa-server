@@ -1,11 +1,16 @@
+# dependencies
 node_modules
-# Keep environment variables out of version control
+
+# env
 .env
 
-/src/generated/prisma
+# build output
+dist
 
+# prisma generated client
+node_modules/.prisma
+/src/generated/prisma
 /generated/prisma
 
-/generated
-
-dist
+# optional: prisma cache
+.prisma
