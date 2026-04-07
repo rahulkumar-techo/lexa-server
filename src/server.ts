@@ -1,10 +1,15 @@
 import { buildApp } from "./app";
 import { env } from "./config/env";
 import { startQueueWorkers, stopQueueInfrastructure } from "./infrastructure/queue";
+import { registerChatSocket } from "./ws/chat.socket";
+import { attachWebSocketServer } from "./ws/ws.server";
 
 const start = async () => {
   try {
-    const app = await buildApp(); // create app instance
+    const app = await buildApp();
+    const wss = attachWebSocketServer(app.server);
+
+    registerChatSocket(app, wss);
     await startQueueWorkers();
 
     const shutdown = async (signal: NodeJS.Signals) => {
@@ -18,11 +23,10 @@ const start = async () => {
     process.once("SIGTERM", shutdown);
 
     await app.listen({ port: env.PORT });
-
-    app.log.info(`Server running on http://localhost:${env.PORT}`); // log startup
+    app.log.info(`Server running on http://localhost:${env.PORT}`);
   } catch (err) {
-    console.error(err); // fallback error log
-    process.exit(1); // exit process
+    console.error(err);
+    process.exit(1);
   }
 };
 
