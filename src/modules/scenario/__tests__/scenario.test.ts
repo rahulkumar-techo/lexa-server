@@ -25,7 +25,7 @@ test("scenario routes list, detail, and allow admin creation with authorization 
     await prisma.user.update({
       where: { email: userEmail },
       data: {
-        role: "admin"
+        role: "ADMIN"
       }
     });
 

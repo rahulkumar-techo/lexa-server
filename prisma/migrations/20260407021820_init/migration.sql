@@ -9,7 +9,7 @@ CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
     "password_hash" TEXT,
@@ -18,7 +18,7 @@ CREATE TABLE "users" (
     "provider" TEXT,
     "provider_id" TEXT,
     "status" "UserStatus" NOT NULL DEFAULT 'INACTIVE',
-    "role" TEXT NOT NULL DEFAULT 'user',
+    "role" "Role" NOT NULL DEFAULT 'USER',
     "is_verified" BOOLEAN NOT NULL DEFAULT false,
     "email_verified_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -29,10 +29,13 @@ CREATE TABLE "users" (
 
 -- CreateTable
 CREATE TABLE "preferences" (
-    "id" SERIAL NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
     "theme" TEXT DEFAULT 'system',
     "language" TEXT DEFAULT 'en',
+    "learning_language" TEXT DEFAULT 'English',
+    "native_language" TEXT DEFAULT 'English',
+    "learning_level" TEXT DEFAULT 'beginner',
     "notifications_enabled" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -43,7 +46,7 @@ CREATE TABLE "preferences" (
 -- CreateTable
 CREATE TABLE "sessions" (
     "id" UUID NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "user_id" UUID NOT NULL,
     "refresh_token" TEXT NOT NULL,
     "expires_at" TIMESTAMP(3) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -55,10 +58,10 @@ CREATE TABLE "sessions" (
 -- CreateTable
 CREATE TABLE "chats" (
     "id" UUID NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "user_id" UUID NOT NULL,
     "title" TEXT NOT NULL,
     "status" "UserStatus" NOT NULL DEFAULT 'INACTIVE',
-    "creeted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "chats_pkey" PRIMARY KEY ("id")
@@ -67,8 +70,8 @@ CREATE TABLE "chats" (
 -- CreateTable
 CREATE TABLE "messages" (
     "id" UUID NOT NULL,
-    "chat_id" TEXT NOT NULL,
-    "user_id" INTEGER,
+    "chat_id" UUID NOT NULL,
+    "user_id" UUID,
     "role" "MessageRole" NOT NULL,
     "content" TEXT NOT NULL,
     "metadata" JSONB,
@@ -80,7 +83,7 @@ CREATE TABLE "messages" (
 -- CreateTable
 CREATE TABLE "contexts" (
     "id" UUID NOT NULL,
-    "chat_id" TEXT NOT NULL,
+    "chat_id" UUID NOT NULL,
     "data" JSONB NOT NULL,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -101,7 +104,7 @@ CREATE TABLE "scenarios" (
 -- CreateTable
 CREATE TABLE "files" (
     "id" UUID NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "user_id" UUID NOT NULL,
     "url" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "size" INTEGER,
@@ -113,7 +116,7 @@ CREATE TABLE "files" (
 -- CreateTable
 CREATE TABLE "analytics_events" (
     "id" UUID NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "user_id" UUID NOT NULL,
     "event" TEXT NOT NULL,
     "metadata" JSONB,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -124,7 +127,7 @@ CREATE TABLE "analytics_events" (
 -- CreateTable
 CREATE TABLE "subscriptions" (
     "id" UUID NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "user_id" UUID NOT NULL,
     "provider" TEXT NOT NULL,
     "status" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -157,6 +160,9 @@ CREATE INDEX "chats_user_id_idx" ON "chats"("user_id");
 CREATE INDEX "messages_chat_id_idx" ON "messages"("chat_id");
 
 -- CreateIndex
+CREATE INDEX "messages_user_id_idx" ON "messages"("user_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "contexts_chat_id_key" ON "contexts"("chat_id");
 
 -- CreateIndex
@@ -164,6 +170,9 @@ CREATE INDEX "files_user_id_idx" ON "files"("user_id");
 
 -- CreateIndex
 CREATE INDEX "analytics_events_user_id_idx" ON "analytics_events"("user_id");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_user_id_idx" ON "subscriptions"("user_id");
 
 -- AddForeignKey
 ALTER TABLE "preferences" ADD CONSTRAINT "preferences_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

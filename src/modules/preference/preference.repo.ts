@@ -2,10 +2,10 @@ import { prisma } from "@/src/lib/prisma";
 import { Preference, Prisma } from "@/generated/prisma/client";
 
 class PreferenceRepo {
-  async getPreferenceByUserId(userId: number): Promise<Preference | null> {
+  async getPreferenceByUserId(userId: string): Promise<Preference | null> {
     return prisma.preference.findUnique({
       where: {
-        user_id: userId
+        userId
       }
     });
   }
@@ -19,13 +19,13 @@ class PreferenceRepo {
   }
 
   async upsertPreference(
-    userId: number,
+    userId: string,
     data: Prisma.PreferenceUncheckedCreateInput,
     update: Prisma.PreferenceUpdateInput
   ): Promise<Preference> {
     return prisma.preference.upsert({
       where: {
-        user_id: userId
+        userId
       },
       create: data,
       update
@@ -33,21 +33,21 @@ class PreferenceRepo {
   }
 
   async updatePreference(
-    userId: number,
+    userId: string,
     data: Prisma.PreferenceUpdateInput
   ): Promise<Preference> {
     return prisma.preference.update({
       where: {
-        user_id: userId
+        userId
       },
       data
     });
   }
 
-  async deletePreference(userId: number): Promise<void> {
+  async deletePreference(userId: string): Promise<void> {
     await prisma.preference.delete({
       where: {
-        user_id: userId
+        userId
       }
     });
   }

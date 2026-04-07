@@ -12,7 +12,7 @@ test("workflow routes cover user, chat, ai, analytics, payment, and file modules
 
   try {
     const authData = verifyResponse.json().data as {
-      user: { id: number };
+      user: { id: string };
       accessToken: string;
     };
     const userId = authData.user.id;
@@ -170,32 +170,32 @@ test("workflow routes cover user, chat, ai, analytics, payment, and file modules
 
     await prisma.context.deleteMany({
       where: {
-        chat_id: chatId
+        chatId
       }
     });
     await prisma.message.deleteMany({
       where: {
-        chat_id: chatId
+        chatId
       }
     });
-    await prisma.chats.deleteMany({
+    await prisma.chat.deleteMany({
       where: {
         id: chatId
       }
     });
     await prisma.analyticsEvent.deleteMany({
       where: {
-        user_id: userId
+        userId
       }
     });
     await prisma.subscription.deleteMany({
       where: {
-        user_id: userId
+        userId
       }
     });
     await prisma.file.deleteMany({
       where: {
-        user_id: userId
+        userId
       }
     });
     await prisma.scenario.deleteMany({

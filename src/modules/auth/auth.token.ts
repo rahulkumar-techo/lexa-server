@@ -12,14 +12,14 @@ const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type AccessTokenPayload = {
-  sub: number;
+  sub: string;
   email: string;
   role: string;
   type: "access";
 };
 
 export type RefreshTokenPayload = {
-  sub: number;
+  sub: string;
   sessionId: string;
   type: "refresh";
 };

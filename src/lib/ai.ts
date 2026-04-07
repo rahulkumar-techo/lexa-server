@@ -30,13 +30,13 @@ type TutorProfile = {
 
 type TutorPreference = {
   language: string | null;
-  learning_language: string | null;
-  native_language: string | null;
-  learning_level: string | null;
+  learningLanguage: string | null;
+  nativeLanguage: string | null;
+  learningLevel: string | null;
 };
 
 type GenerateAIResponseInput = {
-  userId: number;
+  userId: string;
   chatId: string;
   message: string;
   scenario?: string;
@@ -150,13 +150,13 @@ async function getTutorProfile(
 
   const preference = await prisma.preference.findUnique({
     where: {
-      user_id: input.userId
+      userId: input.userId
     },
     select: {
       language: true,
-      learning_language: true,
-      native_language: true,
-      learning_level: true
+      learningLanguage: true,
+      nativeLanguage: true,
+      learningLevel: true
     }
   });
 
@@ -170,16 +170,16 @@ function mapPreferenceToTutorProfile(
   return {
     learningLanguage:
       input.learningLanguage ??
-      preference?.learning_language ??
+      preference?.learningLanguage ??
       preference?.language ??
       DEFAULT_PROFILE.learningLanguage,
     nativeLanguage:
       input.nativeLanguage ??
-      preference?.native_language ??
+      preference?.nativeLanguage ??
       DEFAULT_PROFILE.nativeLanguage,
     level:
       input.level ??
-      preference?.learning_level ??
+      preference?.learningLevel ??
       DEFAULT_PROFILE.level
   };
 }

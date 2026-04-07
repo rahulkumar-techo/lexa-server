@@ -1,15 +1,15 @@
 const chatSchema = {
   type: "object",
-  required: ["id", "user_id", "title", "status", "creeted_at", "updated_at"],
+  required: ["id", "user_id", "title", "status", "created_at", "updated_at"],
   properties: {
     id: { type: "string", format: "uuid" },
-    user_id: { type: "integer" },
+    user_id: { type: "string", format: "uuid" },
     title: { type: "string" },
     status: {
       type: "string",
       enum: ["ACTIVE", "INACTIVE", "BANNED"]
     },
-    creeted_at: { type: "string", format: "date-time" },
+    created_at: { type: "string", format: "date-time" },
     updated_at: { type: "string", format: "date-time" }
   }
 } as const;
@@ -20,7 +20,7 @@ const messageSchema = {
   properties: {
     id: { type: "string", format: "uuid" },
     chat_id: { type: "string", format: "uuid" },
-    user_id: { type: "integer", nullable: true },
+    user_id: { type: "string", format: "uuid", nullable: true },
     role: {
       type: "string",
       enum: ["USER", "ASSISTANT", "SYSTEM"]

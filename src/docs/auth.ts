@@ -3,7 +3,8 @@ const publicUserSchema = {
   required: ["id", "email", "role", "status", "isVerified", "created_at"],
   properties: {
     id: {
-      type: "integer"
+      type: "string",
+      format: "uuid"
     },
     name: {
       type: "string",

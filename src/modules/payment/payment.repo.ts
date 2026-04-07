@@ -10,7 +10,7 @@ class PaymentRepo {
     });
   }
 
-  async getUserById(id: number) {
+  async getUserById(id: string) {
     return prisma.user.findUnique({
       where: { id }
     });

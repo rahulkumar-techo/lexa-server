@@ -3,7 +3,7 @@ const subscriptionSchema = {
   required: ["id", "user_id", "provider", "status", "created_at"],
   properties: {
     id: { type: "string", format: "uuid" },
-    user_id: { type: "integer" },
+    user_id: { type: "string", format: "uuid" },
     provider: { type: "string" },
     status: { type: "string" },
     created_at: { type: "string", format: "date-time" }
@@ -33,7 +33,7 @@ export const paymentWebhookBodySchema = {
   type: "object",
   required: ["userId", "provider", "status"],
   properties: {
-    userId: { type: "integer" },
+    userId: { type: "string", format: "uuid" },
     provider: { type: "string", minLength: 2, maxLength: 50 },
     status: { type: "string", minLength: 2, maxLength: 50 }
   },

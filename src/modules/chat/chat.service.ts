@@ -18,7 +18,7 @@ const ensureChatOwnership = async (req: FastifyRequest, chatId: string) => {
   const user = ensureAuthenticatedUser(req);
   const chat = await chatRepo.getChatById(chatId);
 
-  if (!chat || chat.user_id !== user.id) {
+  if (!chat || chat.userId !== user.id) {
     return null;
   }
 
@@ -38,12 +38,35 @@ const buildScenarioPrompt = async (scenarioId?: string, scenarioText?: string) =
   return scenario ? JSON.stringify(scenario.config) : undefined;
 };
 
+const toChatResponse = (
+  chat: Awaited<ReturnType<typeof chatRepo.getChatById>> extends infer T ? Exclude<T, null> : never
+) => ({
+  id: chat.id,
+  user_id: chat.userId,
+  title: chat.title,
+  status: chat.status,
+  created_at: chat.createdAt,
+  updated_at: chat.updatedAt
+});
+
+const toMessageResponse = (
+  message: Awaited<ReturnType<typeof chatRepo.getChatMessages>>[number]
+) => ({
+  id: message.id,
+  chat_id: message.chatId,
+  user_id: message.userId,
+  role: message.role,
+  content: message.content,
+  metadata: message.metadata,
+  created_at: message.createdAt
+});
+
 export const createChatHandler = asyncHandler(
   async (req: FastifyRequest, res: FastifyReply) => {
     const user = ensureAuthenticatedUser(req);
     const payload = createChatSchema.parse(req.body);
     const chat = await chatRepo.createChat({
-      user_id: user.id,
+      userId: user.id,
       title: payload.title ?? "New chat",
       status: "ACTIVE"
     });
@@ -57,7 +80,7 @@ export const createChatHandler = asyncHandler(
       );
     }
 
-    return responseHandler.created(res, chat, "Chat created successfully");
+    return responseHandler.created(res, toChatResponse(chat), "Chat created successfully");
   }
 );
 
@@ -66,7 +89,11 @@ export const getChatsHandler = asyncHandler(
     const user = ensureAuthenticatedUser(req);
     const chats = await chatRepo.getUserChats(user.id);
 
-    return responseHandler.success(res, chats, "Chats fetched successfully");
+    return responseHandler.success(
+      res,
+      chats.map((chat) => toChatResponse(chat)),
+      "Chats fetched successfully"
+    );
   }
 );
 
@@ -81,7 +108,11 @@ export const getChatMessagesHandler = asyncHandler(
 
     const messages = await chatRepo.getChatMessages(chat.id);
 
-    return responseHandler.success(res, messages, "Chat messages fetched successfully");
+    return responseHandler.success(
+      res,
+      messages.map((message) => toMessageResponse(message)),
+      "Chat messages fetched successfully"
+    );
   }
 );
 
@@ -104,8 +135,8 @@ export const sendChatMessageHandler = asyncHandler(
         : undefined;
 
     const userMessage = await chatRepo.createMessage({
-      chat_id: chat.id,
-      user_id: user.id,
+      chatId: chat.id,
+      userId: user.id,
       role: MessageRole.USER,
       content: payload.message
     });
@@ -127,7 +158,7 @@ export const sendChatMessageHandler = asyncHandler(
     });
 
     const assistantMessage = await chatRepo.createMessage({
-      chat_id: chat.id,
+      chatId: chat.id,
       role: MessageRole.ASSISTANT,
       content: aiResponse.reply,
       metadata: (aiResponse.usage ?? null) as Prisma.InputJsonValue
@@ -147,8 +178,8 @@ export const sendChatMessageHandler = asyncHandler(
     return responseHandler.success(
       res,
       {
-        userMessage,
-        assistantMessage,
+        userMessage: toMessageResponse(userMessage),
+        assistantMessage: toMessageResponse(assistantMessage),
         reply: aiResponse.reply
       },
       "Message sent successfully"

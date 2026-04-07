@@ -1,26 +1,26 @@
 import { prisma } from "@/src/lib/prisma";
-import { Chats, Context, Message, MessageRole, Prisma, Scenario } from "@/generated/prisma/client";
+import { Chat, Context, Message, MessageRole, Prisma, Scenario } from "@/generated/prisma/client";
 
 class ChatRepo {
-  async createChat(data: Prisma.ChatsUncheckedCreateInput): Promise<Chats> {
-    return prisma.chats.create({
+  async createChat(data: Prisma.ChatUncheckedCreateInput): Promise<Chat> {
+    return prisma.chat.create({
       data
     });
   }
 
-  async getUserChats(userId: number): Promise<Chats[]> {
-    return prisma.chats.findMany({
+  async getUserChats(userId: string): Promise<Chat[]> {
+    return prisma.chat.findMany({
       where: {
-        user_id: userId
+        userId
       },
       orderBy: {
-        updated_at: "desc"
+        updatedAt: "desc"
       }
     });
   }
 
-  async getChatById(id: string): Promise<Chats | null> {
-    return prisma.chats.findUnique({
+  async getChatById(id: string): Promise<Chat | null> {
+    return prisma.chat.findUnique({
       where: { id }
     });
   }
@@ -34,10 +34,10 @@ class ChatRepo {
   async getChatMessages(chatId: string): Promise<Message[]> {
     return prisma.message.findMany({
       where: {
-        chat_id: chatId
+        chatId
       },
       orderBy: {
-        created_at: "asc"
+        createdAt: "asc"
       }
     });
   }
@@ -51,10 +51,10 @@ class ChatRepo {
   async upsertContext(chatId: string, data: Prisma.InputJsonValue): Promise<Context> {
     return prisma.context.upsert({
       where: {
-        chat_id: chatId
+        chatId
       },
       create: {
-        chat_id: chatId,
+        chatId,
         data
       },
       update: {
@@ -66,16 +66,16 @@ class ChatRepo {
   async getContextByChatId(chatId: string): Promise<Context | null> {
     return prisma.context.findUnique({
       where: {
-        chat_id: chatId
+        chatId
       }
     });
   }
 
-  async touchChat(chatId: string): Promise<Chats> {
-    return prisma.chats.update({
+  async touchChat(chatId: string): Promise<Chat> {
+    return prisma.chat.update({
       where: { id: chatId },
       data: {
-        updated_at: new Date(),
+        updatedAt: new Date(),
         status: "ACTIVE"
       }
     });

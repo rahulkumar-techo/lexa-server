@@ -27,7 +27,12 @@ import {
   setAuthCookies,
   verifyRefreshToken
 } from "./auth.token";
-import { getRequestOrigin, getSingleHeaderValue, toPublicUser } from "./auth.helpers";
+import {
+  getRequestOrigin,
+  getSingleHeaderValue,
+  isAdminRole,
+  toPublicUser
+} from "./auth.helpers";
 import { enqueueAuthEmailJob } from "@/src/infrastructure/queue/jobs/email.job";
 import { queueConfig } from "@/src/infrastructure/queue/queue.config";
 import { mailService } from "../mails/mail.service";
@@ -131,7 +136,7 @@ class AuthService {
       throw new Error("Your account has been banned");
     }
 
-    if (!user.is_verified) {
+    if (!user.isVerified) {
       throw new Error("Verify your email before logging in");
     }
 
@@ -155,7 +160,7 @@ class AuthService {
         email: user.email,
         name: user.name ?? user.email,
         userId: user.id,
-        isVip: user.role === "admin",
+        isVip: isAdminRole(user.role),
         requestId
       });
     } catch (error) {
@@ -178,7 +183,7 @@ class AuthService {
       return responseHandler.notFound(reply, "User not found");
     }
 
-    if (user.is_verified) {
+    if (user.isVerified) {
       return responseHandler.badRequest(reply, "User already verified");
     }
 
@@ -264,11 +269,11 @@ class AuthService {
     const { email, password } = loginSchema.parse(req.body);
     const user = await authRepo.getUser({ email });
 
-    if (!user || !user.password_hash) {
+    if (!user || !user.passwordHash) {
       return responseHandler.unauthorized(reply, "Invalid email or password");
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
       return responseHandler.unauthorized(reply, "Invalid email or password");
@@ -292,8 +297,8 @@ class AuthService {
     const { email } = forgotPasswordSchema.parse(req.body);
     const user = await authRepo.getUser({ email });
 
-    if (user?.password_hash) {
-      const { token } = generatePasswordResetToken(req.server, user.email, user.password_hash);
+    if (user?.passwordHash) {
+      const { token } = generatePasswordResetToken(req.server, user.email, user.passwordHash);
       const resetUrl = `${getRequestOrigin(req)}/api/v1/auth/reset-password?token=${encodeURIComponent(token)}`;
 
       await this.sendForgotPasswordEmail(user, resetUrl, req);
@@ -326,18 +331,18 @@ class AuthService {
 
     const user = await authRepo.getUser({ email: decoded.email });
 
-    if (!user || !user.password_hash) {
+    if (!user || !user.passwordHash) {
       return responseHandler.notFound(reply, "User not found");
     }
 
-    if (user.password_hash !== decoded.passwordHash) {
+    if (user.passwordHash !== decoded.passwordHash) {
       return responseHandler.badRequest(reply, "Reset token is no longer valid");
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
     await authRepo.updateUser(user.id, {
-      password_hash: passwordHash
+      passwordHash
     });
     await authRepo.deleteSessionsByUserId(user.id);
 
@@ -355,7 +360,7 @@ class AuthService {
       return responseHandler.unauthorized(reply, "Refresh token is missing");
     }
 
-    let payload: { sub: number; sessionId: string; type: "refresh" };
+    let payload: { sub: string; sessionId: string; type: "refresh" };
 
     try {
       payload = verifyRefreshToken(req.server, refreshToken);
@@ -369,7 +374,7 @@ class AuthService {
       return responseHandler.forbidden(reply, "Invalid refresh token");
     }
 
-    const user = await authRepo.getUser({ id: Number(payload.sub) });
+    const user = await authRepo.getUser({ id: payload.sub });
     const session = await authRepo.getSessionById(payload.sessionId);
 
     if (!user || !session) {
@@ -377,7 +382,7 @@ class AuthService {
       return responseHandler.notFound(reply, "Session not found");
     }
 
-    if (session.refresh_token !== refreshToken || session.expires_at <= new Date()) {
+    if (session.refreshToken !== refreshToken || session.expiresAt <= new Date()) {
       clearAuthCookies(reply);
       await authRepo.deleteSessionById(session.id);
       return responseHandler.forbidden(reply, "Invalid or expired refresh token");
