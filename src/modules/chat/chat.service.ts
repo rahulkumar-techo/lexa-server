@@ -61,6 +61,81 @@ const toMessageResponse = (
   created_at: message.createdAt
 });
 
+type ProcessChatMessageInput = {
+  userId: string;
+  chatId: string;
+  message: string;
+  scenario?: string;
+};
+
+export const processChatMessage = async ({
+  userId,
+  chatId,
+  message,
+  scenario
+}: ProcessChatMessageInput) => {
+  const chat = await chatRepo.getChatById(chatId);
+
+  if (!chat || chat.userId !== userId) {
+    return null;
+  }
+
+  const previousMessages = await chatRepo.getChatMessages(chat.id);
+  const context = await chatRepo.getContextByChatId(chat.id);
+  const storedScenarioId =
+    context?.data && typeof context.data === "object" && !Array.isArray(context.data)
+      ? String((context.data as Record<string, unknown>).scenarioId ?? "")
+      : undefined;
+
+  const userMessage = await chatRepo.createMessage({
+    chatId: chat.id,
+    userId,
+    role: MessageRole.USER,
+    content: message
+  });
+
+  const history = previousMessages.slice(-10).map((entry) => ({
+    role:
+      entry.role === MessageRole.ASSISTANT
+        ? ("assistant" as const)
+        : ("user" as const),
+    content: entry.content
+  }));
+
+  const aiResponse = await generateAIResponse({
+    userId,
+    chatId: chat.id,
+    message,
+    scenario: await buildScenarioPrompt(storedScenarioId, scenario),
+    history
+  });
+
+  const assistantMessage = await chatRepo.createMessage({
+    chatId: chat.id,
+    role: MessageRole.ASSISTANT,
+    content: aiResponse.reply,
+    metadata: (aiResponse.usage ?? null) as Prisma.InputJsonValue
+  });
+
+  await chatRepo.upsertContext(
+    chat.id,
+    {
+      scenarioId: storedScenarioId || null,
+      lastUserMessage: message,
+      lastAssistantReply: aiResponse.reply
+    } as Prisma.InputJsonValue
+  );
+
+  await chatRepo.touchChat(chat.id);
+
+  return {
+    chat: toChatResponse(chat),
+    userMessage: toMessageResponse(userMessage),
+    assistantMessage: toMessageResponse(assistantMessage),
+    reply: aiResponse.reply
+  };
+};
+
 export const createChatHandler = asyncHandler(
   async (req: FastifyRequest, res: FastifyReply) => {
     const user = ensureAuthenticatedUser(req);
@@ -121,67 +196,20 @@ export const sendChatMessageHandler = asyncHandler(
     const user = ensureAuthenticatedUser(req);
     const { id } = req.params as { id: string };
     const payload = sendMessageSchema.parse(req.body);
-    const chat = await ensureChatOwnership(req, id);
+    const result = await processChatMessage({
+      userId: user.id,
+      chatId: id,
+      message: payload.message,
+      scenario: payload.scenario
+    });
 
-    if (!chat) {
+    if (!result) {
       return responseHandler.notFound(res, "Chat not found");
     }
 
-    const previousMessages = await chatRepo.getChatMessages(chat.id);
-    const context = await chatRepo.getContextByChatId(chat.id);
-    const storedScenarioId =
-      context?.data && typeof context.data === "object" && !Array.isArray(context.data)
-        ? String((context.data as Record<string, unknown>).scenarioId ?? "")
-        : undefined;
-
-    const userMessage = await chatRepo.createMessage({
-      chatId: chat.id,
-      userId: user.id,
-      role: MessageRole.USER,
-      content: payload.message
-    });
-
-    const history = previousMessages.slice(-10).map((message) => ({
-      role:
-        message.role === MessageRole.ASSISTANT
-          ? ("assistant" as const)
-          : ("user" as const),
-      content: message.content
-    }));
-
-    const aiResponse = await generateAIResponse({
-      userId: user.id,
-      chatId: chat.id,
-      message: payload.message,
-      scenario: await buildScenarioPrompt(storedScenarioId, payload.scenario),
-      history
-    });
-
-    const assistantMessage = await chatRepo.createMessage({
-      chatId: chat.id,
-      role: MessageRole.ASSISTANT,
-      content: aiResponse.reply,
-      metadata: (aiResponse.usage ?? null) as Prisma.InputJsonValue
-    });
-
-    await chatRepo.upsertContext(
-      chat.id,
-      {
-        scenarioId: storedScenarioId || null,
-        lastUserMessage: payload.message,
-        lastAssistantReply: aiResponse.reply
-      } as Prisma.InputJsonValue
-    );
-
-    await chatRepo.touchChat(chat.id);
-
     return responseHandler.success(
       res,
-      {
-        userMessage: toMessageResponse(userMessage),
-        assistantMessage: toMessageResponse(assistantMessage),
-        reply: aiResponse.reply
-      },
+      result,
       "Message sent successfully"
     );
   }
