@@ -6,12 +6,14 @@ export const toPublicUser = (user: User) => ({
   id: user.id,
   name: user.name,
   email: user.email,
-  role: user.role,
+  role: user.role.toLowerCase(),
   status: user.status,
-  isVerified: user.is_verified,
-  created_at: user.created_at,
-  email_verified_at: user.email_verified_at
+  isVerified: user.isVerified,
+  created_at: user.createdAt,
+  email_verified_at: user.emailVerifiedAt
 });
+
+export const isAdminRole = (role: User["role"]) => role === "ADMIN";
 
 export const getRequestOrigin = (req: FastifyRequest) => {
   const host = req.headers.host ?? `localhost:${env.PORT}`;

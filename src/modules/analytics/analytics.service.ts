@@ -5,13 +5,23 @@ import { responseHandler } from "@/src/utils/responseHandler";
 import analyticsRepo from "./analytics.repo";
 import { createAnalyticsEventSchema } from "./analytics.schema";
 
-const canAccessAnalytics = (req: FastifyRequest, targetUserId: number) => {
+const canAccessAnalytics = (req: FastifyRequest, targetUserId: string) => {
   if (!req.authUser) {
     throw new Error("Unauthorized");
   }
 
-  return req.authUser.id === targetUserId || req.authUser.role === "admin";
+  return req.authUser.id === targetUserId || req.authUser.role === "ADMIN";
 };
+
+const toAnalyticsEventResponse = (
+  event: Awaited<ReturnType<typeof analyticsRepo.getRecentUserEvents>>[number]
+) => ({
+  id: event.id,
+  user_id: event.userId,
+  event: event.event,
+  metadata: event.metadata,
+  created_at: event.createdAt
+});
 
 export const createAnalyticsEventHandler = asyncHandler(
   async (req: FastifyRequest, res: FastifyReply) => {
@@ -21,19 +31,23 @@ export const createAnalyticsEventHandler = asyncHandler(
 
     const payload = createAnalyticsEventSchema.parse(req.body);
     const event = await analyticsRepo.createEvent({
-      user_id: req.authUser.id,
+      userId: req.authUser.id,
       event: payload.event,
       metadata: (payload.metadata ?? null) as Prisma.InputJsonValue
     });
 
-    return responseHandler.created(res, event, "Analytics event created successfully");
+    return responseHandler.created(
+      res,
+      toAnalyticsEventResponse(event),
+      "Analytics event created successfully"
+    );
   }
 );
 
 export const getUserAnalyticsHandler = asyncHandler(
   async (req: FastifyRequest, res: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const userId = Number(id);
+    const userId = id;
 
     if (!canAccessAnalytics(req, userId)) {
       return responseHandler.forbidden(res, "Forbidden");
@@ -48,7 +62,7 @@ export const getUserAnalyticsHandler = asyncHandler(
       res,
       {
         totalEvents,
-        recentEvents
+        recentEvents: recentEvents.map((event) => toAnalyticsEventResponse(event))
       },
       "Analytics fetched successfully"
     );

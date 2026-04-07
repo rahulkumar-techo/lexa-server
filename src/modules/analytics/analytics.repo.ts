@@ -8,21 +8,21 @@ class AnalyticsRepo {
     });
   }
 
-  async countUserEvents(userId: number): Promise<number> {
+  async countUserEvents(userId: string): Promise<number> {
     return prisma.analyticsEvent.count({
       where: {
-        user_id: userId
+        userId
       }
     });
   }
 
-  async getRecentUserEvents(userId: number): Promise<AnalyticsEvent[]> {
+  async getRecentUserEvents(userId: string): Promise<AnalyticsEvent[]> {
     return prisma.analyticsEvent.findMany({
       where: {
-        user_id: userId
+        userId
       },
       orderBy: {
-        created_at: "desc"
+        createdAt: "desc"
       },
       take: 20
     });

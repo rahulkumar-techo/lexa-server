@@ -228,7 +228,7 @@ test('authorize(["admin"]) forbids normal users and allows admins', async () => 
         email
       },
       data: {
-        role: "admin"
+        role: "ADMIN"
       }
     });
 

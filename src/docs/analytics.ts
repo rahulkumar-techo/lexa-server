@@ -3,7 +3,7 @@ const analyticsEventSchema = {
   required: ["id", "user_id", "event", "created_at"],
   properties: {
     id: { type: "string", format: "uuid" },
-    user_id: { type: "integer" },
+    user_id: { type: "string", format: "uuid" },
     event: { type: "string" },
     metadata: {
       type: "object",
@@ -61,7 +61,7 @@ export const getUserAnalyticsRouteSchema = {
     type: "object",
     required: ["id"],
     properties: {
-      id: { type: "integer" }
+      id: { type: "string", format: "uuid" }
     }
   },
   response: {

@@ -9,10 +9,12 @@ const preferenceDataSchema = {
   ],
   properties: {
     id: {
-      type: "integer"
+      type: "string",
+      format: "uuid"
     },
     user_id: {
-      type: "integer"
+      type: "string",
+      format: "uuid"
     },
     theme: {
       type: "string",

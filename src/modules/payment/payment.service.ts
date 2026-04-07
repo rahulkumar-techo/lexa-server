@@ -4,6 +4,16 @@ import { responseHandler } from "@/src/utils/responseHandler";
 import paymentRepo from "./payment.repo";
 import { createSubscriptionSchema, paymentWebhookSchema } from "./payment.schema";
 
+const toSubscriptionResponse = (
+  subscription: Awaited<ReturnType<typeof paymentRepo.createSubscription>>
+) => ({
+  id: subscription.id,
+  user_id: subscription.userId,
+  provider: subscription.provider,
+  status: subscription.status,
+  created_at: subscription.createdAt
+});
+
 export const createSubscriptionHandler = asyncHandler(
   async (req: FastifyRequest, res: FastifyReply) => {
     if (!req.authUser) {
@@ -12,12 +22,16 @@ export const createSubscriptionHandler = asyncHandler(
 
     const payload = createSubscriptionSchema.parse(req.body);
     const subscription = await paymentRepo.createSubscription({
-      user_id: req.authUser.id,
+      userId: req.authUser.id,
       provider: payload.provider,
       status: payload.status
     });
 
-    return responseHandler.created(res, subscription, "Subscription created successfully");
+    return responseHandler.created(
+      res,
+      toSubscriptionResponse(subscription),
+      "Subscription created successfully"
+    );
   }
 );
 
@@ -31,11 +45,15 @@ export const paymentWebhookHandler = asyncHandler(
     }
 
     const subscription = await paymentRepo.createSubscription({
-      user_id: payload.userId,
+      userId: payload.userId,
       provider: payload.provider,
       status: payload.status
     });
 
-    return responseHandler.success(res, subscription, "Webhook processed successfully");
+    return responseHandler.success(
+      res,
+      toSubscriptionResponse(subscription),
+      "Webhook processed successfully"
+    );
   }
 );

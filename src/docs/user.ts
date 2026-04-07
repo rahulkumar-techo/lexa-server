@@ -2,7 +2,7 @@ const publicProfileSchema = {
   type: "object",
   required: ["id", "email", "role", "status", "is_verified", "created_at", "updated_at"],
   properties: {
-    id: { type: "integer" },
+    id: { type: "string", format: "uuid" },
     email: { type: "string", format: "email" },
     name: { type: "string", nullable: true },
     avatar_url: { type: "string", nullable: true },
@@ -45,7 +45,7 @@ export const getUserRouteSchema = {
     type: "object",
     required: ["id"],
     properties: {
-      id: { type: "integer" }
+      id: { type: "string", format: "uuid" }
     }
   },
   response: {
@@ -71,7 +71,7 @@ export const updateUserRouteSchema = {
     type: "object",
     required: ["id"],
     properties: {
-      id: { type: "integer" }
+      id: { type: "string", format: "uuid" }
     }
   },
   body: updateUserBodySchema,

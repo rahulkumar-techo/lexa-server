@@ -12,14 +12,40 @@ const ensureAuthenticatedUserId = (req: FastifyRequest) => {
   return req.authUser.id;
 };
 
-const buildDefaultPreference = (userId: number) => ({
-  user_id: userId,
+const buildDefaultPreference = (userId: string) => ({
+  userId,
   theme: "system",
   language: "en",
-  learning_language: "English",
-  native_language: "English",
-  learning_level: "beginner" as const,
-  notifications_enabled: true
+  learningLanguage: "English",
+  nativeLanguage: "English",
+  learningLevel: "beginner" as const,
+  notificationsEnabled: true
+});
+
+const mapPreferencePayloadToPrisma = (payload: ReturnType<typeof updatePreferenceSchema.parse>) => ({
+  theme: payload.theme,
+  language: payload.language,
+  learningLanguage: payload.learning_language,
+  nativeLanguage: payload.native_language,
+  learningLevel: payload.learning_level,
+  notificationsEnabled: payload.notifications_enabled
+});
+
+const toPreferenceResponse = (
+  preference: Awaited<ReturnType<typeof preferenceRepo.getPreferenceByUserId>> extends infer T
+    ? Exclude<T, null>
+    : never
+) => ({
+  id: preference.id,
+  user_id: preference.userId,
+  theme: preference.theme,
+  language: preference.language,
+  learning_language: preference.learningLanguage,
+  native_language: preference.nativeLanguage,
+  learning_level: preference.learningLevel,
+  notifications_enabled: preference.notificationsEnabled,
+  created_at: preference.createdAt,
+  updated_at: preference.updatedAt
 });
 
 export const getMyPreference = asyncHandler(
@@ -32,7 +58,11 @@ export const getMyPreference = asyncHandler(
       preference = await preferenceRepo.createPreference(buildDefaultPreference(userId));
     }
 
-    return responseHandler.success(res, preference, "Preference fetched successfully");
+    return responseHandler.success(
+      res,
+      toPreferenceResponse(preference),
+      "Preference fetched successfully"
+    );
   }
 );
 
@@ -49,11 +79,15 @@ export const upsertMyPreference = asyncHandler(
       userId,
       {
         ...buildDefaultPreference(userId),
-        ...payload
+        ...mapPreferencePayloadToPrisma(payload)
       },
-      payload
+      mapPreferencePayloadToPrisma(payload)
     );
 
-    return responseHandler.success(res, preference, "Preference updated successfully");
+    return responseHandler.success(
+      res,
+      toPreferenceResponse(preference),
+      "Preference updated successfully"
+    );
   }
 );

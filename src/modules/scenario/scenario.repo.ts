@@ -5,7 +5,7 @@ class ScenarioRepo {
   async getScenarios(): Promise<Scenario[]> {
     return prisma.scenario.findMany({
       orderBy: {
-        created_at: "desc"
+        createdAt: "desc"
       }
     });
   }

@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
+import { randomUUID } from "crypto";
 import { asyncHandler } from "@/src/utils/asyncHandler";
 import { responseHandler } from "@/src/utils/responseHandler";
 import { generateAIResponse } from "@/src/lib/ai";
@@ -13,7 +14,7 @@ export const generateAIHandler = asyncHandler(
     const payload = aiGenerateSchema.parse(req.body);
     const result = await generateAIResponse({
       userId: req.authUser.id,
-      chatId: payload.chatId ?? crypto.randomUUID(),
+      chatId: payload.chatId ?? randomUUID(),
       message: payload.message,
       scenario: payload.scenario,
       history: payload.history,

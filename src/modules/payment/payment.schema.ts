@@ -6,7 +6,7 @@ export const createSubscriptionSchema = z.object({
 });
 
 export const paymentWebhookSchema = z.object({
-  userId: z.number().int().positive(),
+  userId: z.string().uuid(),
   provider: z.string().min(2).max(50),
   status: z.string().min(2).max(50)
 });

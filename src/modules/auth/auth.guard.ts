@@ -10,6 +10,7 @@ import {
 } from "./auth.token";
 import { User, UserStatus } from "@/generated/prisma/client";
 import { FastifyReply, FastifyRequest } from "fastify";
+import { isAdminRole } from "./auth.helpers";
 
 const getBearerToken = (authorizationHeader?: string) => {
   if (!authorizationHeader) {
@@ -25,14 +26,14 @@ const getBearerToken = (authorizationHeader?: string) => {
   return token;
 };
 
-const getAuthorizedUser = async (userId: number): Promise<User | null> => {
+const getAuthorizedUser = async (userId: string): Promise<User | null> => {
   const user = await authRepo.getUser({ id: userId });
 
   if (!user) {
     return null;
   }
 
-  if (!user.is_verified || user.status === UserStatus.BANNED) {
+  if (!user.isVerified || user.status === UserStatus.BANNED) {
     return null;
   }
 
@@ -70,7 +71,7 @@ export const authenticate = async (req: FastifyRequest, reply: FastifyReply) => 
   if (accessToken) {
     try {
       const payload = verifyAccessToken(req.server, accessToken);
-      const user = await getAuthorizedUser(Number(payload.sub));
+      const user = await getAuthorizedUser(payload.sub);
 
       if (!user) {
         return reply.status(401).send({
@@ -106,7 +107,7 @@ export const authenticate = async (req: FastifyRequest, reply: FastifyReply) => 
     }
 
     const [user, session] = await Promise.all([
-      getAuthorizedUser(Number(payload.sub)),
+      getAuthorizedUser(payload.sub),
       authRepo.getSessionById(payload.sessionId)
     ]);
 
@@ -117,7 +118,7 @@ export const authenticate = async (req: FastifyRequest, reply: FastifyReply) => 
       });
     }
 
-    if (session.refresh_token !== refreshToken || session.expires_at <= new Date()) {
+    if (session.refreshToken !== refreshToken || session.expiresAt <= new Date()) {
       await authRepo.deleteSessionById(session.id);
 
       return reply.status(401).send({
@@ -144,7 +145,10 @@ export const authorize = (roles: string[]) => {
       });
     }
 
-    if (!roles.includes(req.authUser.role)) {
+    const normalizedRoles = roles.map((role) => role.toLowerCase());
+    const currentRole = req.authUser.role.toLowerCase();
+
+    if (!normalizedRoles.includes(currentRole) && !(isAdminRole(req.authUser.role) && normalizedRoles.includes("admin"))) {
       return reply.status(403).send({
         success: false,
         message: "Forbidden"

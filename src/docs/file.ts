@@ -3,7 +3,7 @@ const fileSchema = {
   required: ["id", "user_id", "url", "type", "created_at"],
   properties: {
     id: { type: "string", format: "uuid" },
-    user_id: { type: "integer" },
+    user_id: { type: "string", format: "uuid" },
     url: { type: "string" },
     type: { type: "string" },
     size: { type: "integer", nullable: true },
