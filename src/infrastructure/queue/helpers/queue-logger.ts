@@ -1,27 +1,9 @@
+import { writePrettyLog } from "@/src/utils/pretty-log";
+
 type QueueLogLevel = "info" | "warn" | "error";
 
 const writeLog = (level: QueueLogLevel, message: string, context?: Record<string, unknown>) => {
-  const payload = {
-    scope: "queue",
-    level,
-    message,
-    ...context,
-    timestamp: new Date().toISOString()
-  };
-
-  const line = JSON.stringify(payload);
-
-  if (level === "error") {
-    console.error(line);
-    return;
-  }
-
-  if (level === "warn") {
-    console.warn(line);
-    return;
-  }
-
-  console.info(line);
+  writePrettyLog("queue", level, message, context);
 };
 
 export const queueLogger = {
