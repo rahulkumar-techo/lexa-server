@@ -162,7 +162,8 @@ export const resetPasswordBodySchema = {
 export const registerRouteSchema = {
   tags: ["Auth"],
   summary: "Register a new user",
-  description: "Creates an inactive user, sends a verification email, and returns the verification token for development/testing.",
+  description:
+    "Creates an inactive user and sends a verification email. Test runs may also include debug verification fields.",
   body: registerBodySchema,
   response: {
     201: {
@@ -174,7 +175,7 @@ export const registerRouteSchema = {
         message: { type: "string" },
         data: {
           type: "object",
-          required: ["user", "verificationToken", "verificationLink", "mailProvider"],
+          required: ["user", "mailProvider"],
           properties: {
             user: publicUserSchema,
             verificationToken: {

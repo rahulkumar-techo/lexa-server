@@ -22,7 +22,7 @@ const transporter = isTestRuntime
 
 export const mailService = new EmailService({
   appName: env.APP_NAME,
-  appUrl: `http://localhost:${env.PORT}`,
+  appUrl: env.APP_URL,
   from: {
     email: env.NODEMAILER_EMAIL ?? "no-reply@example.com",
     name: env.APP_NAME

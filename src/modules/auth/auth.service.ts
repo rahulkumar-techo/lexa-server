@@ -36,6 +36,7 @@ import {
 import { enqueueAuthEmailJob } from "@/src/infrastructure/queue/jobs/email.job";
 import { queueConfig } from "@/src/infrastructure/queue/queue.config";
 import { mailService } from "../mails/mail.service";
+import { env } from "@/src/config/env";
 
 const logAuthWarning = (message: string, context: Record<string, unknown>) => {
   console.warn(
@@ -48,6 +49,12 @@ const logAuthWarning = (message: string, context: Record<string, unknown>) => {
     })
   );
 };
+
+const isTestRuntime =
+  env.NODE_ENV === "test" ||
+  process.argv.includes("--test") ||
+  process.argv.some((arg) => arg.includes(".test.")) ||
+  process.env.npm_lifecycle_event === "test";
 
 class AuthService {
   private sendVerificationEmail = async (
@@ -219,8 +226,12 @@ class AuthService {
       reply,
       {
         user: toPublicUser(newUser),
-        verificationToken: token,
-        verificationLink,
+        ...(isTestRuntime
+          ? {
+              verificationToken: token,
+              verificationLink
+            }
+          : {}),
         mailProvider: mailService.getProviderName()
       },
       "User registered successfully. Verification email sent."
@@ -298,8 +309,12 @@ class AuthService {
     const user = await authRepo.getUser({ email });
 
     if (user?.passwordHash) {
-      const { token } = generatePasswordResetToken(req.server, user.email, user.passwordHash);
-      const resetUrl = `${getRequestOrigin(req)}/api/v1/auth/reset-password?token=${encodeURIComponent(token)}`;
+      const { token } = generatePasswordResetToken(
+        req.server,
+        user.email,
+        user.updatedAt.toISOString()
+      );
+      const resetUrl = `${env.APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
 
       await this.sendForgotPasswordEmail(user, resetUrl, req);
     }
@@ -313,19 +328,19 @@ class AuthService {
 
   resetPasswordHandler = asyncHandler(async (req: FastifyRequest, reply: FastifyReply) => {
     const { token, password } = resetPasswordSchema.parse(req.body);
-    let decoded: { email: string; purpose: "password-reset"; passwordHash?: string };
+    let decoded: { email: string; purpose: "password-reset"; userUpdatedAt?: string };
 
     try {
       decoded = verifyVerificationToken(req.server, token) as {
         email: string;
         purpose: "password-reset";
-        passwordHash?: string;
+        userUpdatedAt?: string;
       };
     } catch {
       return responseHandler.badRequest(reply, "Invalid or expired token");
     }
 
-    if (decoded.purpose !== "password-reset" || !decoded.passwordHash) {
+    if (decoded.purpose !== "password-reset" || !decoded.userUpdatedAt) {
       return responseHandler.badRequest(reply, "Invalid reset token");
     }
 
@@ -335,7 +350,7 @@ class AuthService {
       return responseHandler.notFound(reply, "User not found");
     }
 
-    if (user.passwordHash !== decoded.passwordHash) {
+    if (user.updatedAt.toISOString() !== decoded.userUpdatedAt) {
       return responseHandler.badRequest(reply, "Reset token is no longer valid");
     }
 

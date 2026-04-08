@@ -116,6 +116,21 @@ const getTokenFromRequest = (req: IncomingMessage) => {
   return getBearerToken(queryToken) ?? queryToken;
 };
 
+const getSafeRequestUrl = (rawUrl?: string | null) => {
+  if (!rawUrl) {
+    return rawUrl ?? undefined;
+  }
+
+  const parsedUrl = new URL(rawUrl, "http://localhost");
+
+  if (parsedUrl.searchParams.has("token")) {
+    parsedUrl.searchParams.set("token", "[redacted]");
+  }
+
+  const search = parsedUrl.searchParams.toString();
+  return `${parsedUrl.pathname}${search ? `?${search}` : ""}`;
+};
+
 // Verify the socket token and load the active user behind it.
 const authenticateSocketUser = async (
   app: FastifyInstance,
@@ -349,7 +364,7 @@ export const registerChatSocket = (app: FastifyInstance, wss: WebSocketServer) =
     if (!auth.user) {
       socketLogger.warn("connection rejected", {
         reason: auth.reason,
-        url: req.url
+        url: getSafeRequestUrl(req.url)
       });
       sendError(socket, "Unauthorized");
       socket.close(1008, "Unauthorized");
@@ -360,7 +375,7 @@ export const registerChatSocket = (app: FastifyInstance, wss: WebSocketServer) =
 
     socketLogger.info("client connected", {
       userId: socket.user.id,
-      url: req.url
+      url: getSafeRequestUrl(req.url)
     });
 
     sendEvent(socket, "CONNECTED", {

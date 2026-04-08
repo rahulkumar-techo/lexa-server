@@ -6,7 +6,7 @@ export type VerificationTokenPayload = {
   email: string;
   purpose: VerificationPurpose;
   otp?: string;
-  passwordHash?: string;
+  userUpdatedAt?: string;
 };
 
 const createOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -31,13 +31,13 @@ export const generateVerificationToken = (
 export const generatePasswordResetToken = (
   app: FastifyInstance,
   email: string,
-  passwordHash: string
+  userUpdatedAt: string
 ): { token: string } => {
   const token = app.jwt.sign(
     {
       email,
       purpose: "password-reset",
-      passwordHash
+      userUpdatedAt
     },
     { expiresIn: "15m" }
   );

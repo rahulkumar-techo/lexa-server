@@ -4,13 +4,16 @@ import { env } from "@/src/config";
 import { prisma } from "@/src/lib/prisma";
 
 const groq = new Groq({
-  apiKey: env.groq_api_key
+  apiKey: env.GROQ_API_KEY
 });
 
-const DEFAULT_MODEL = env.GROQ_MODEL ?? "openai/gpt-oss-20b";
+const DEFAULT_MODEL = env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const DEFAULT_SCENARIO = "General conversation practice";
 const IS_TEST_RUNTIME =
-  env.NODE_ENV === "test" || process.argv.includes("--test");
+  env.NODE_ENV === "test" ||
+  process.argv.includes("--test") ||
+  process.argv.some((arg) => arg.includes(".test.")) ||
+  process.env.npm_lifecycle_event === "test";
 const DEFAULT_PROFILE = {
   learningLanguage: "English",
   nativeLanguage: "English",
