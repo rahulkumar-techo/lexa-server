@@ -1,0 +1,54 @@
+#  Lexa production setup (App + Redis, CockroachDB external)
+
+version: "3.9"
+
+services:
+  app:
+    container_name: lexa-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    restart: always
+    depends_on:
+      - redis
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+
+      # Database (CockroachDB cloud)
+      DB_URL: ${DB_URL}
+
+      # Redis (Docker service)
+      REDIS_URL: redis://:password@redis:6379
+
+      # AI
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL}
+
+      # Mail
+      APP_PASSWORD: ${APP_PASSWORD}
+      NODEMAILER_EMAIL: ${NODEMAILER_EMAIL}
+
+      # Queue
+      QUEUE_EMAIL_WORKER_CONCURRENCY: 5
+      QUEUE_EMAIL_RATE_LIMIT_MAX: 10
+      QUEUE_EMAIL_RATE_LIMIT_WINDOW_SECONDS: 60
+
+  redis:
+    container_name: lexa-redis
+    image: redis:7
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: [
+      "redis-server",
+      "--appendonly", "yes",
+      "--requirepass", "password" # Replace "password" with strong one
+    ]
+
+volumes:
+  redis_data:
